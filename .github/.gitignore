@@ -1,0 +1,51 @@
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment & Secrets (VERY IMPORTANT)
+.env
+.env.*
+*.pem
+*.key
+
+# AWS / SSH
+key.pem
+id_rsa
+id_ed25519
+
+# Docker temp files
+*.pid
+*.sock
+
+# Docker artifacts
+docker-compose.override.yml
+docker-data/
+.docker/
+
+# Build output
+dist/
+build/
+
+# Cache
+.cache/
+.tmp/
+
+# Editor/IDE files
+.vscode/
+.idea/
+
+# GitHub Actions temporary files
+.github/workflows/*.tmp
+
+# NPM package-lock (optional – if you don’t want it in Git)
+# package-lock.json
