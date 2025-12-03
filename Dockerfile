@@ -1,22 +1,22 @@
-4.3 — Dockerfile
-Paste:
-# Use Node.js base image
+# Use Node.js 18 LTS base image
 FROM node:18
 
-# Set the working directory
+# Set working directory inside the container
 WORKDIR /app
 
-# Copy package.json
-COPY package.json .
+# Copy package.json and package-lock.json for dependency caching
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy all project files
+# Copy the rest of the application code
 COPY . .
 
-# Expose port 3000
+# Expose ports 9000 and 3000 to match your EC2 inbound rules
+EXPOSE 9000
 EXPOSE 3000
 
-# Start the app
+# Start the application
 CMD ["npm", "start"]
+
