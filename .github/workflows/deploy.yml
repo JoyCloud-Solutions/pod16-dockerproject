@@ -1,73 +1,48 @@
-name: Deploy to AWS EC2
+deploy:
+  runs-on: ubuntu-latest
 
-on:
-  push:
-    branches: [ "main" ]
+  steps:
+  # -----------------------------
+  # Checkout repository
+  # -----------------------------
+  - name: Checkout repository
+    uses: actions/checkout@v3
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  # -----------------------------
+  # Configure AWS credentials
+  # -----------------------------
+  - name: Configure AWS Credentials
+    uses: aws-actions/configure-aws-credentials@v2
+    with:
+      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      aws-region: ${{ secrets.AWS_REGION }}
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+  # -----------------------------
+  # Login to AWS ECR
+  # -----------------------------
+  - name: Login to ECR
+    run: |
+      aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+      docker login --username AWS --password-stdin ${{ secrets.ECR_REPO }}
 
-    # -----------------------------
-    # Configure AWS credentials
-    # -----------------------------
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+  # -----------------------------
+  # Save SSH key
+  # -----------------------------
+  - name: Save SSH key
+    run: |
+      echo "${{ secrets.SSH_KEY_PEM }}" > key.pem
+      chmod 600 key.pem
 
-    # -----------------------------
-    # Login to AWS ECR
-    # -----------------------------
-    - name: Login to Amazon ECR
-      run: |
-        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
-        docker login --username AWS --password-stdin ${{ secrets.ECR_REPO }}
-
-    # -----------------------------
-    # Build Docker Image
-    # -----------------------------
-    - name: Build Docker Image
-      run: |
-        docker build -t appimage .
-
-    # -----------------------------
-    # Tag Docker Image
-    # -----------------------------
-    - name: Tag Docker Image
-      run: |
-        docker tag appimage:latest ${{ secrets.ECR_REPO }}:latest
-
-    # -----------------------------
-    # Push Docker Image to ECR
-    # -----------------------------
-    - name: Push Docker Image
-      run: |
-        docker push ${{ secrets.ECR_REPO }}:latest
-
-    # -----------------------------
-    # Save SSH Key
-    # -----------------------------
-    - name: Save SSH key
-      run: |
-        echo "${{ secrets.SSH_KEY_PEM }}" > key.pem
-        chmod 600 key.pem
-
-    # -----------------------------
-    # Connect and Deploy on EC2
-    # -----------------------------
-    - name: Deploy on EC2
-      run: |
-        ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ secrets.EC2_PUBLIC_IP }} "
-          docker pull ${{ secrets.ECR_REPO }}:latest &&
-          docker stop app || true &&
-          docker rm app || true &&
-          docker run -d --name app -p 80:80 ${{ secrets.ECR_REPO }}:latest
-        "
+  # -----------------------------
+  # Deploy to EC2
+  # -----------------------------
+  - name: Deploy Docker container to EC2
+    run: |
+      ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ secrets.EC2_PUBLIC_IP }} "
+        docker pull ${{ secrets.ECR_REPO }}:latest &&
+        docker stop app || true &&
+        docker rm app || true &&
+        docker run -d --name app -p 9000:9000 -p 3000:3000 ${{ secrets.ECR_REPO }}:latest
+      "
 
